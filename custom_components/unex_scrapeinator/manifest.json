@@ -6,6 +6,6 @@
     "domain": "unex_scrapeinator",
     "iot_class": "cloud_polling",
     "name": "UNEX Scrapeinator",
-    "requirements": [],
+    "requirements": ["requests-html"],
     "version": "1.0.0"
 }

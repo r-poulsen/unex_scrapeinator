@@ -1,0 +1,11 @@
+{
+    "codeowners": ["@user"],
+    "config_flow": false,
+    "dependencies": [],
+    "documentation": "https://github.com/r-poulsen/unex_scrapeinator/",
+    "domain": "unex_scrapeinator",
+    "iot_class": "cloud_polling",
+    "name": "UNEX Scrapeinator",
+    "requirements": [],
+    "version": "1.0.0"
+}

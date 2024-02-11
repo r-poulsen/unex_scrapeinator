@@ -15,8 +15,7 @@ import homeassistant.util.dt
 from .const import (DOMAIN, CONF_UPDATE_INTERVAL, CONF_CLIENT, CONF_PLATFORM)
 
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: logging.Logger = logging.getLogger(f"custom_components.{DOMAIN}")
 
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
@@ -45,7 +44,8 @@ class UnexScrapeinatorSensor(SensorEntity):
         self._hass = hass
         self._coordinator = coordinator
         self._icon = "mdi:email-multiple-outline"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
+        # self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_state_class = None
 
     @property
     def icon(self):

@@ -5,8 +5,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from requests_html import HTMLSession
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
-_LOGGER = logging.getLogger(__name__)
+from .const import DOMAIN
+
+_LOGGER: logging.Logger = logging.getLogger(f"custom_components.{DOMAIN}")
 
 
 class ScrapeinatorException(Exception):
@@ -68,7 +69,7 @@ class UnexScrapeinator:
     next_post: tuple[datetime, list[UnexSendItem]]
 
     def __init__(self, **kwargs) -> None:
-        logging.debug("UnexScrapeinator.__init__")
+        _LOGGER.debug("UnexScrapeinator.__init__")
         self.__username = kwargs.get("username")
         self.__password = kwargs.get("password")
 
@@ -84,7 +85,7 @@ class UnexScrapeinator:
 
     def __login(self) -> None:
         """ This method logs into the UNEX website. """
-        logging.debug("UnexScrapeinator.__login")
+        _LOGGER.debug("UnexScrapeinator.__login")
         login_payload = {
             "j_username": self.__username,
             "j_password": self.__password,
@@ -102,7 +103,7 @@ class UnexScrapeinator:
 
     def run(self) -> None:
         """ This method runs the scraper """
-        logging.debug("UnexScrapeinator.run")
+        _LOGGER.debug("UnexScrapeinator.run")
 
         # If we don't have a session cookie, we need to login
         if self.__session.cookies.get('JSESSIONID') is None:

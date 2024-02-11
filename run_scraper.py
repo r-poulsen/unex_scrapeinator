@@ -5,10 +5,10 @@ from time import sleep
 import logging
 import yaml
 from custom_components.unex_scrapeinator import UnexScrapeinator
+from custom_components.unex_scrapeinator.const import DOMAIN
 
 
-_LOGGER: logging.Logger = logging.getLogger(__package__)
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: logging.Logger = logging.getLogger(DOMAIN)
 
 logging.basicConfig(level=logging.DEBUG)
 

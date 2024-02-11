@@ -1,3 +1,5 @@
+""" The UNEX Scrapeinator component. """
+
 import logging
 from homeassistant import core
 
@@ -10,17 +12,20 @@ from .const import (
     UPDATE_INTERVAL, CONF_PLATFORM
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(f"custom_components.{DOMAIN}")
 
 
 async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
     """Set up the UNEX Scrapeinator component."""
-    # @TODO: Add setup code.
+
+    def handle_update(call):
+        """Handle the service call."""
+        hass.data[DOMAIN][CONF_CLIENT].run()
 
     conf = config.get(DOMAIN)
     # If no config, abort
     if conf is None:
-        return True
+        return False
 
     hass.data[DOMAIN] = {
         CONF_CLIENT: UnexScrapeinator(
@@ -34,5 +39,7 @@ async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
         hass.helpers.discovery.async_load_platform(
             CONF_PLATFORM, DOMAIN, conf, config)
     )
+
+    hass.services.async_register(DOMAIN, "update", handle_update)
 
     return True

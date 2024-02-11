@@ -9,6 +9,14 @@ _LOGGER: logging.Logger = logging.getLogger(__package__)
 _LOGGER = logging.getLogger(__name__)
 
 
+class ScrapeinatorException(Exception):
+    """ This class is used to raise exceptions in the Scrapeinator class. """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.message = message
+
+
 @dataclass
 class UnexSendItem:
     """ This class is used to store the data of a sending item. """
@@ -112,6 +120,13 @@ class UnexScrapeinator:
             self.__login()
             response = self.__session.get(self.__urls['posting_plan'])
             response.raise_for_status()
+
+        # At this point we should have reached the overview page or something went wrong
+        if not response.html.find('title', first=True).text.startswith("Panel Zone | Posting plan"):
+            raise ScrapeinatorException(
+                f"Unexpected pagetitle: {
+                    response.html.find('title', first=True).text}"
+            )
 
         for row in response.html.find('tr')[1:]:
             send_item = UnexSendItem(*[c.text for c in row.find('td')][:4])

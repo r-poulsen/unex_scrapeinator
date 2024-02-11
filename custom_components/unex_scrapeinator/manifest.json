@@ -1,5 +1,5 @@
 {
-    "codeowners": ["@user"],
+    "codeowners": ["@r-poulsen"],
     "config_flow": false,
     "dependencies": [],
     "documentation": "https://github.com/r-poulsen/unex_scrapeinator/",

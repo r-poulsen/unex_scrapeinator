@@ -18,25 +18,16 @@ class UnexSendItem:
     requested_posting_date: datetime | str
     actual_posting_date: datetime = field(init=False)
 
-    # date needs to be converted to a timedate object from the string
     def __post_init__(self) -> None:
         self.requested_posting_date = self.requested_posting_date.split(' ')[0]
-        self.requested_posting_date = datetime.strptime(self.requested_posting_date, '%Y%m%d')
-
-        # date = datetime.strptime(posts[post]['date'], "%Y-%m-%d")
-
+        self.requested_posting_date = datetime.strptime(
+            self.requested_posting_date, '%Y%m%d')
         today = datetime.now()
-        if self.requested_posting_date < today:  # Check if the date is in the past
-            # Calculate the difference in days between today and the past date
+        if self.requested_posting_date < today:
             days_difference = (today - self.requested_posting_date).days
-
-            # Calculate the number of weeks that have passed since the past date
             weeks_difference = days_difference // 7
-
-            # Calculate the next occurrence of the same weekday within the next week
-            next_date = self.requested_posting_date + timedelta(weeks=weeks_difference + 1)
-
-            # Adjust the next date if it's earlier than today
+            next_date = self.requested_posting_date + \
+                timedelta(weeks=weeks_difference + 1)
             if next_date < today:
                 next_date += timedelta(weeks=1)
 
@@ -64,16 +55,12 @@ class UnexSendItem:
 
 
 class UnexScrapeinator:
-
     """ This class is used to scrape the UNEX website. """
-
     posts: list[datetime, list[UnexSendItem]] = []
-    # next_posts: dict[UnexSendItem] = {}
-    next_post: (datetime, [UnexSendItem])
+    next_post: tuple[datetime, list[UnexSendItem]]
 
     def __init__(self, **kwargs) -> None:
-
-        logging.warning("UnexScrapeinator.__init__")
+        logging.debug("UnexScrapeinator.__init__")
         self.__username = kwargs.get("username")
         self.__password = kwargs.get("password")
 
@@ -82,15 +69,14 @@ class UnexScrapeinator:
             'posting_plan': kwargs.get("base_url") + "dataentry/overview/send.htm"
         }
         self.__session = HTMLSession()
-        self.__session.headers.update(
-            {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
-                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
-            }
-        )
+        self.__session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+            "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+        })
 
     def __login(self) -> None:
         """ This method logs into the UNEX website. """
+        logging.debug("UnexScrapeinator.__login")
         login_payload = {
             "j_username": self.__username,
             "j_password": self.__password,
@@ -99,7 +85,8 @@ class UnexScrapeinator:
         response = self.__session.post(
             self.__urls['login'], data=login_payload)
 
-        # Extract the JSESSIONID cookie from the response and add it to the session
+        response.raise_for_status()
+
         jsessionid = response.cookies['JSESSIONID']
         self.__session.headers.update(
             {"Cookie": f"JSESSIONID={jsessionid}"}
@@ -107,16 +94,31 @@ class UnexScrapeinator:
 
     def run(self) -> None:
         """ This method runs the scraper """
+        logging.debug("UnexScrapeinator.run")
 
-        self.__login()
+        # If we don't have a session cookie, we need to login
+        if self.__session.cookies.get('JSESSIONID') is None:
+            self.__login()
+
         response = self.__session.get(self.__urls['posting_plan'])
+        response.raise_for_status()
 
         posts_dict = {}
+        self.posts = []
+
+        # If we're redirected to the login page, the session cookie probably expired
+        # and we need to login again.
+        if response.html.find('title', first=True).text == "Panel Zone | Sign In":
+            self.__login()
+            response = self.__session.get(self.__urls['posting_plan'])
+            response.raise_for_status()
+
         for row in response.html.find('tr')[1:]:
             send_item = UnexSendItem(*[c.text for c in row.find('td')][:4])
 
             if send_item.actual_posting_date not in posts_dict:
-                posts_dict[send_item.actual_posting_date.strftime("%Y-%m-%d")] = []
+                posts_dict[send_item.actual_posting_date.strftime(
+                    "%Y-%m-%d")] = []
 
             posts_dict[send_item.actual_posting_date.strftime("%Y-%m-%d")].append({
                 "id": send_item.item_id,

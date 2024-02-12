@@ -132,7 +132,8 @@ class UnexScrapeinator:
         for row in response.html.find('tr')[1:]:
             send_item = UnexSendItem(*[c.text for c in row.find('td')][:4])
 
-            if send_item.actual_posting_date not in posts_dict:
+            if send_item.actual_posting_date.strftime(
+                    "%Y-%m-%d") not in posts_dict:
                 posts_dict[send_item.actual_posting_date.strftime(
                     "%Y-%m-%d")] = []
 

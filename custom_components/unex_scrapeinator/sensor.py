@@ -20,7 +20,7 @@ _LOGGER: logging.Logger = logging.getLogger(f"custom_components.{DOMAIN}")
 
 async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
 
-    update_interval = hass.data[DOMAIN][CONF_UPDATE_INTERVAL] * 60
+    update_interval = hass.data[DOMAIN][CONF_UPDATE_INTERVAL]
 
     async def async_update_data():
         await hass.async_add_executor_job(hass.data[DOMAIN][CONF_CLIENT].run)
@@ -87,6 +87,7 @@ class UnexScrapeinatorSensor(SensorEntity):
 
     async def async_update(self):
         """Update the entity. Only used by the generic entity update service."""
+        _LOGGER.debug("UnexScrapeinatorSensor.async_update")
         await self._coordinator.async_request_refresh()
 
     async def async_added_to_hass(self):

@@ -23,4 +23,5 @@ scraper = UnexScrapeinator(
     username=username, password=password, base_url=base_url)
 while True:
     scraper.run()
+    print(scraper.posts)
     sleep(60)

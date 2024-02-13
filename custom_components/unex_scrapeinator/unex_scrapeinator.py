@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from requests_html import HTMLSession
 
 from .const import DOMAIN
@@ -31,8 +31,8 @@ class UnexSendItem:
         self.requested_posting_date = self.requested_posting_date.split(' ')[0]
         self.requested_posting_date = datetime.strptime(
             self.requested_posting_date, '%Y%m%d')
-        today = datetime.now()
-        if self.requested_posting_date < today:
+        today = date.today()
+        if self.requested_posting_date.date() < today:
             days_difference = (today - self.requested_posting_date).days
             weeks_difference = days_difference // 7
             next_date = self.requested_posting_date + \

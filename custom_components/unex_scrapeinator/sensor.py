@@ -12,7 +12,8 @@ from homeassistant.components.sensor import (
 )
 import homeassistant.util.dt
 
-from .const import (DOMAIN, CONF_UPDATE_INTERVAL, CONF_CLIENT, CONF_PLATFORM)
+from .const import (DOMAIN, CONF_UPDATE_INTERVAL,
+                    CONF_CLIENT, CONF_PLATFORM, SENSOR)
 
 
 _LOGGER: logging.Logger = logging.getLogger(f"custom_components.{DOMAIN}")
@@ -24,6 +25,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     async def async_update_data():
         await hass.async_add_executor_job(hass.data[DOMAIN][CONF_CLIENT].run)
+
     coordinator = DataUpdateCoordinator(
         hass,
         _LOGGER,
@@ -34,7 +36,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     await coordinator.async_request_refresh()
 
-    async_add_entities([UnexScrapeinatorSensor(hass, coordinator)])
+    hass.data[DOMAIN][SENSOR] = UnexScrapeinatorSensor(hass, coordinator)
+
+    async_add_entities([hass.data[DOMAIN][SENSOR]])
 
 
 class UnexScrapeinatorSensor(SensorEntity):
@@ -46,6 +50,11 @@ class UnexScrapeinatorSensor(SensorEntity):
         self._icon = "mdi:email-multiple-outline"
         # self._attr_state_class = SensorStateClass.MEASUREMENT
         self._attr_state_class = None
+
+    @property
+    def coordinator(self):
+        """ Return the coordinator """
+        return self._coordinator
 
     @property
     def icon(self):

@@ -9,7 +9,7 @@ from .const import (
     DOMAIN,
     CONF_UPDATE_INTERVAL,
     CONF_CLIENT,
-    UPDATE_INTERVAL, CONF_PLATFORM
+    UPDATE_INTERVAL, CONF_PLATFORM, SENSOR
 )
 
 _LOGGER = logging.getLogger(f"custom_components.{DOMAIN}")
@@ -18,9 +18,12 @@ _LOGGER = logging.getLogger(f"custom_components.{DOMAIN}")
 async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
     """Set up the UNEX Scrapeinator component."""
 
-    def handle_update(call):
+    async def handle_update(call):
         """Handle the service call."""
-        hass.data[DOMAIN][CONF_CLIENT].run()
+        # await hass.async_add_executor_job(hass.data[DOMAIN][CONF_CLIENT].run)
+        # hass.data[DOMAIN][CONF_CLIENT].run()
+
+        await hass.data[DOMAIN][SENSOR].coordinator.async_request_refresh()
 
     conf = config.get(DOMAIN)
     # If no config, abort

@@ -28,11 +28,16 @@ class UnexSendItem:
     actual_posting_date: datetime = field(init=False)
 
     def __post_init__(self) -> None:
-        self.requested_posting_date = self.requested_posting_date.split(' ')[0]
         self.requested_posting_date = datetime.strptime(
-            self.requested_posting_date, '%Y%m%d')
+            self.requested_posting_date.split(' ')[0], '%Y%m%d'
+        ).date()
+        # self.requested_posting_date = self.requested_posting_date.split(' ')[0]
+        # self.requested_posting_date = datetime.strptime(
+        #     self.requested_posting_date, '%Y%m%d')
+        # self.requested_posting_date = self.requested_posting_date.date()
+
         today = date.today()
-        if self.requested_posting_date.date() < today:
+        if self.requested_posting_date < today:
             days_difference = (today - self.requested_posting_date).days
             weeks_difference = days_difference // 7
             next_date = self.requested_posting_date + \
@@ -41,9 +46,7 @@ class UnexSendItem:
                 next_date += timedelta(weeks=1)
 
             self.actual_posting_date = next_date.date()
-
         else:
-            self.requested_posting_date = self.requested_posting_date.date()
             self.actual_posting_date = self.requested_posting_date
 
     def __repr__(self) -> str:

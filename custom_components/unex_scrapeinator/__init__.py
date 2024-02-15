@@ -20,9 +20,6 @@ async def async_setup(hass: core.HomeAssistant, config: dict) -> bool:
 
     async def handle_update(call):
         """Handle the service call."""
-        # await hass.async_add_executor_job(hass.data[DOMAIN][CONF_CLIENT].run)
-        # hass.data[DOMAIN][CONF_CLIENT].run()
-
         await hass.data[DOMAIN][SENSOR].coordinator.async_request_refresh()
 
     conf = config.get(DOMAIN)

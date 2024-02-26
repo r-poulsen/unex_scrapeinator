@@ -24,24 +24,20 @@ class UnexSendItem:
     item_id: str
     receiver_name: str
     sending_method: str
-    requested_posting_date: datetime | str
-    actual_posting_date: datetime = field(init=False)
+    requested_posting_date: date | str
+    actual_posting_date: date = field(init=False)
 
     def __post_init__(self) -> None:
-
         self.requested_posting_date = datetime.strptime(
             self.requested_posting_date.split(' ')[0], '%Y%m%d'
         ).date()
 
         today = date.today()
         if self.requested_posting_date < today:
-            days_difference = (today - self.requested_posting_date).days
-            weeks_difference = days_difference // 7
-            next_date = self.requested_posting_date + \
-                timedelta(weeks=weeks_difference + 1)
-            if next_date < today:
-                next_date += timedelta(weeks=1)
-
+            requested_weekday = self.requested_posting_date.weekday()
+            next_date: date = today + timedelta(
+                days=(requested_weekday - today.weekday()) % 7
+            )
             self.actual_posting_date = next_date
         else:
             self.actual_posting_date = self.requested_posting_date

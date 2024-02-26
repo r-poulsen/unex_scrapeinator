@@ -1,6 +1,7 @@
 #!/bin/env python
 """ This script runs the UnexScraper class. """
 
+from pprint import pprint
 from time import sleep
 import logging
 import yaml
@@ -20,8 +21,8 @@ password = config['password']
 base_url = config['base_url']
 
 scraper = UnexScrapeinator(
-    username=username, password=password, base_url=base_url)
-while True:
-    scraper.run()
-    print(scraper.posts)
-    sleep(60)
+    username=username, password=password, base_url=base_url
+)
+
+scraper.run()
+pprint(scraper.posts)

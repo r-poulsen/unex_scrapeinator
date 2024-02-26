@@ -148,4 +148,4 @@ class UnexScrapeinator:
         for k, v in sorted(posts_dict.items()):
             self.posts.append([k, v])
 
-        self.next_post = (self.posts[0][0], self.posts[0][1])
+        self.next_post = self.posts[0]

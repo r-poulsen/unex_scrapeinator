@@ -27,20 +27,53 @@ class UnexSendItem:
     requested_posting_date: date | str
     actual_posting_date: date = field(init=False)
 
+    # def __post_init__(self) -> None:
+    #     self.requested_posting_date = datetime.strptime(
+    #         self.requested_posting_date.split(' ')[0], '%Y%m%d'
+    #     ).date()
+
+    #     today = date.today()
+    #     if self.requested_posting_date < today:
+    #         requested_weekday = self.requested_posting_date.weekday()
+    #         next_date: date = today + timedelta(
+    #             days=(requested_weekday - today.weekday()) % 7
+    #         )
+    #         self.actual_posting_date = next_date
+    #     else:
+    #         self.actual_posting_date = self.requested_posting_date
+
+    # def __post_init__(self) -> None:
+    #     self.requested_posting_date = datetime.strptime(
+    #         self.requested_posting_date.split(' ')[0], '%Y%m%d'
+    #     ).date()
+
+    #     # Calculate the previous workday
+    #     previous_workday = self.requested_posting_date - timedelta(days=1)
+    #     while previous_workday.weekday() > 4:  # 0-4 corresponds to Monday - Friday
+    #         previous_workday -= timedelta(days=1)
+
+    #     self.actual_posting_date = previous_workday
+
     def __post_init__(self) -> None:
         self.requested_posting_date = datetime.strptime(
             self.requested_posting_date.split(' ')[0], '%Y%m%d'
         ).date()
 
+        # Calculate the previous workday
+        previous_workday = self.requested_posting_date - timedelta(days=1)
+        while previous_workday.weekday() > 4:  # 0-4 corresponds to Monday - Friday
+            previous_workday -= timedelta(days=1)
+
         today = date.today()
-        if self.requested_posting_date < today:
-            requested_weekday = self.requested_posting_date.weekday()
-            next_date: date = today + timedelta(
-                days=(requested_weekday - today.weekday()) % 7
-            )
+
+        # If the previous workday is in the past, calculate the next date with the same weekday
+        if previous_workday < today:
+            days_until_next_date = (
+                self.requested_posting_date.weekday() - today.weekday() + 7) % 7
+            next_date = today + timedelta(days=days_until_next_date)
             self.actual_posting_date = next_date
         else:
-            self.actual_posting_date = self.requested_posting_date
+            self.actual_posting_date = previous_workday
 
     def __repr__(self) -> str:
         return (

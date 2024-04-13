@@ -2,8 +2,9 @@
 
 import logging
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta
+from datetime import date, time, datetime, timedelta
 from requests_html import HTMLSession
+from requests import Response
 
 from .const import DOMAIN
 
@@ -26,54 +27,49 @@ class UnexSendItem:
     sending_method: str
     requested_posting_date: date | str
     actual_posting_date: date = field(init=False)
-
-    # def __post_init__(self) -> None:
-    #     self.requested_posting_date = datetime.strptime(
-    #         self.requested_posting_date.split(' ')[0], '%Y%m%d'
-    #     ).date()
-
-    #     today = date.today()
-    #     if self.requested_posting_date < today:
-    #         requested_weekday = self.requested_posting_date.weekday()
-    #         next_date: date = today + timedelta(
-    #             days=(requested_weekday - today.weekday()) % 7
-    #         )
-    #         self.actual_posting_date = next_date
-    #     else:
-    #         self.actual_posting_date = self.requested_posting_date
-
-    # def __post_init__(self) -> None:
-    #     self.requested_posting_date = datetime.strptime(
-    #         self.requested_posting_date.split(' ')[0], '%Y%m%d'
-    #     ).date()
-
-    #     # Calculate the previous workday
-    #     previous_workday = self.requested_posting_date - timedelta(days=1)
-    #     while previous_workday.weekday() > 4:  # 0-4 corresponds to Monday - Friday
-    #         previous_workday -= timedelta(days=1)
-
-    #     self.actual_posting_date = previous_workday
+    actual_posting_interval: tuple[datetime, datetime] = field(init=False)
 
     def __post_init__(self) -> None:
-        self.requested_posting_date = datetime.strptime(
-            self.requested_posting_date.split(' ')[0], '%Y%m%d'
-        ).date()
+        if isinstance(self.requested_posting_date, str):
+            self.requested_posting_date = datetime.strptime(
+                self.requested_posting_date.split(' ')[0], '%Y%m%d'
+            ).date()
 
-        # Calculate the previous workday
-        previous_workday = self.requested_posting_date - timedelta(days=1)
+        now = datetime.now()
+        requested_posting_datetime = datetime.combine(
+            self.requested_posting_date, time(10, 0))
+
+        if now > requested_posting_datetime:
+            # If current time has passed 10:00 on the requested_posting_date,
+            # set actual_posting_date to the same day of the next week
+            days_until_next_week = 7 - self.requested_posting_date.weekday()
+            self.actual_posting_date = self.requested_posting_date + \
+                timedelta(days=days_until_next_week)
+        else:
+            # If current time hasn't passed 10:00 on the requested_posting_date,
+            # set actual_posting_date to the requested_posting_date
+            self.actual_posting_date = self.requested_posting_date
+
+        previous_workday = self.get_previous_workday(self.actual_posting_date)
+        start_time = datetime.combine(previous_workday, time(10, 0))
+        end_time = datetime.combine(self.actual_posting_date, time(10, 0))
+
+        self.actual_posting_interval = (start_time, end_time)
+
+    @staticmethod
+    def get_previous_workday(input_date):
+        """ This method returns the previous workday of the input date.
+
+        Args:
+            input_date (date): The input date.
+
+        Returns:
+            date: The previous workday of the input date.
+        """
+        previous_workday = input_date - timedelta(days=1)
         while previous_workday.weekday() > 4:  # 0-4 corresponds to Monday - Friday
             previous_workday -= timedelta(days=1)
-
-        today = date.today()
-
-        # If the previous workday is in the past, calculate the next date with the same weekday
-        if previous_workday < today:
-            days_until_next_date = (
-                self.requested_posting_date.weekday() - today.weekday() + 7) % 7
-            next_date = today + timedelta(days=days_until_next_date)
-            self.actual_posting_date = next_date
-        else:
-            self.actual_posting_date = previous_workday
+        return previous_workday
 
     def __repr__(self) -> str:
         return (
@@ -138,7 +134,8 @@ class UnexScrapeinator:
         if self.__session.cookies.get('JSESSIONID') is None:
             self.__login()
 
-        response = self.__session.get(self.__urls['posting_plan'])
+        response: Response = self.__session.get(
+            self.__urls['posting_plan'])
         response.raise_for_status()
 
         posts_dict = {}
@@ -146,6 +143,7 @@ class UnexScrapeinator:
 
         # If we're redirected to the login page, the session cookie probably expired
         # and we need to login again.
+
         if response.html.find('title', first=True).text == "Panel Zone | Sign In":
             self.__login()
             response = self.__session.get(self.__urls['posting_plan'])
@@ -171,7 +169,8 @@ class UnexScrapeinator:
                 "receiver_name": send_item.receiver_name,
                 "sending_method": send_item.sending_method,
                 "requested_posting_date": send_item.requested_posting_date.strftime("%Y-%m-%d"),
-                "actual_posting_date": send_item.actual_posting_date.strftime("%Y-%m-%d")
+                "actual_posting_date": send_item.actual_posting_date.strftime("%Y-%m-%d"),
+                "actual_posting_interval": send_item.actual_posting_interval
             })
 
         for k, v in sorted(posts_dict.items()):

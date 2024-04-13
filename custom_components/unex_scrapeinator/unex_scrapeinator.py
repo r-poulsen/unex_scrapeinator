@@ -3,8 +3,9 @@
 import logging
 from dataclasses import dataclass, field
 from datetime import date, time, datetime, timedelta
-from requests_html import HTMLSession
-from requests import Response
+from urllib.parse import urljoin
+from requests_html import HTMLSession, HTMLResponse, Element
+
 
 from .const import DOMAIN
 
@@ -90,18 +91,21 @@ class UnexSendItem:
 
 class UnexScrapeinator:
     """ This class is used to scrape the UNEX website. """
-    posts: list[datetime, list[UnexSendItem]] = []
+    posts: list[tuple[datetime, list[UnexSendItem]]] = []
     next_post: tuple[datetime, list[UnexSendItem]]
+    __session: HTMLSession
 
     def __init__(self, **kwargs) -> None:
         _LOGGER.debug("UnexScrapeinator.__init__")
         self.__username = kwargs.get("username")
         self.__password = kwargs.get("password")
 
-        self.__urls = {
-            'login': kwargs.get("base_url") + "j_spring_security_check",
-            'posting_plan': kwargs.get("base_url") + "dataentry/overview/send.htm"
-        }
+        base_url = kwargs.get("base_url")
+        if isinstance(base_url, str):
+            self.__urls = {
+                'login': urljoin(base_url, "j_spring_security_check"),
+                'posting_plan': urljoin(base_url, "dataentry/overview/send.htm")
+            }
         self.__session = HTMLSession()
         self.__session.headers.update({
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
@@ -134,8 +138,9 @@ class UnexScrapeinator:
         if self.__session.cookies.get('JSESSIONID') is None:
             self.__login()
 
-        response: Response = self.__session.get(
+        response = self.__session.get(
             self.__urls['posting_plan'])
+        assert isinstance(response, HTMLResponse)
         response.raise_for_status()
 
         posts_dict = {}
@@ -144,26 +149,36 @@ class UnexScrapeinator:
         # If we're redirected to the login page, the session cookie probably expired
         # and we need to login again.
 
-        if response.html.find('title', first=True).text == "Panel Zone | Sign In":
+        title_element = response.html.find('title', first=True)
+        assert isinstance(title_element, Element)
+        if title_element.text == "Panel Zone | Sign In":
             self.__login()
             response = self.__session.get(self.__urls['posting_plan'])
+            assert isinstance(response, HTMLResponse)
             response.raise_for_status()
 
         # At this point we should have reached the overview page or something went wrong
-        if not response.html.find('title', first=True).text.startswith("Panel Zone | Posting plan"):
+
+        title_element = response.html.find('title', first=True)
+        assert isinstance(title_element, Element)
+        if not title_element.text.startswith("Panel Zone | Posting plan"):
             raise ScrapeinatorException(
-                f"Unexpected pagetitle: {
-                    response.html.find('title', first=True).text}"
+                f"Unexpected pagetitle: {title_element.text}"
             )
 
-        for row in response.html.find('tr')[1:]:
-            send_item = UnexSendItem(*[c.text for c in row.find('td')][:4])
+        row_elements = response.html.find('tr')
+        assert isinstance(row_elements, list)
+        for row in row_elements[1:]:
+            td_elements = row.find('td')
+            assert isinstance(td_elements, list)
+            send_item = UnexSendItem(*[c.text for c in td_elements][:4])
 
             if send_item.actual_posting_date.strftime(
                     "%Y-%m-%d") not in posts_dict:
                 posts_dict[send_item.actual_posting_date.strftime(
                     "%Y-%m-%d")] = []
 
+            assert isinstance(send_item.requested_posting_date, date)
             posts_dict[send_item.actual_posting_date.strftime("%Y-%m-%d")].append({
                 "id": send_item.item_id,
                 "receiver_name": send_item.receiver_name,
@@ -174,6 +189,6 @@ class UnexScrapeinator:
             })
 
         for k, v in sorted(posts_dict.items()):
-            self.posts.append([k, v])
+            self.posts.append((k, v))
 
         self.next_post = self.posts[0]

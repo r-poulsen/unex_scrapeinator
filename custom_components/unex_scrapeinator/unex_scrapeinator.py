@@ -5,6 +5,9 @@ from dataclasses import dataclass, field
 from datetime import date, time, datetime, timedelta
 from urllib.parse import urljoin
 from requests_html import HTMLSession, HTMLResponse, Element
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+from datetime import datetime
 
 
 from .const import DOMAIN
@@ -28,7 +31,8 @@ class UnexSendItem:
     sending_method: str
     requested_posting_date: date | str
     actual_posting_date: date = field(init=False)
-    actual_posting_interval: tuple[datetime, datetime] = field(init=False)
+    posting_intervals: tuple[tuple[datetime, datetime],
+                             tuple[datetime, datetime]] = field(init=False)
 
     def __post_init__(self) -> None:
         if isinstance(self.requested_posting_date, str):
@@ -40,12 +44,16 @@ class UnexSendItem:
         requested_posting_datetime = datetime.combine(
             self.requested_posting_date, time(10, 0))
 
+        # TODO This doesn't check for holidays
+
+        # Get the next same weekday
+        next_same_weekday = datetime.now(
+        ) + relativedelta(weekday=self.requested_posting_date.weekday())
+
         if now > requested_posting_datetime:
             # If current time has passed 10:00 on the requested_posting_date,
-            # set actual_posting_date to the same day of the next week
-            days_until_next_week = 7 - self.requested_posting_date.weekday()
-            self.actual_posting_date = self.requested_posting_date + \
-                timedelta(days=days_until_next_week)
+            # set actual_posting_date to the next same weekday
+            self.actual_posting_date = next_same_weekday
         else:
             # If current time hasn't passed 10:00 on the requested_posting_date,
             # set actual_posting_date to the requested_posting_date
@@ -55,7 +63,15 @@ class UnexSendItem:
         start_time = datetime.combine(previous_workday, time(10, 0))
         end_time = datetime.combine(self.actual_posting_date, time(10, 0))
 
-        self.actual_posting_interval = (start_time, end_time)
+        # TODO This just adds one week and does not take holidays into account
+        self.posting_intervals = (
+            (start_time, end_time),
+            (
+                start_time +
+                timedelta(weeks=1),
+                end_time + timedelta(weeks=1)
+            )
+        )
 
     @staticmethod
     def get_previous_workday(input_date):
@@ -67,6 +83,8 @@ class UnexSendItem:
         Returns:
             date: The previous workday of the input date.
         """
+
+        # TODO Does not take holidays into account
         previous_workday = input_date - timedelta(days=1)
         while previous_workday.weekday() > 4:  # 0-4 corresponds to Monday - Friday
             previous_workday -= timedelta(days=1)
@@ -185,7 +203,7 @@ class UnexScrapeinator:
                 "sending_method": send_item.sending_method,
                 "requested_posting_date": send_item.requested_posting_date.strftime("%Y-%m-%d"),
                 "actual_posting_date": send_item.actual_posting_date.strftime("%Y-%m-%d"),
-                "actual_posting_interval": send_item.actual_posting_interval
+                "actual_posting_interval": send_item.posting_intervals
             })
 
         for k, v in sorted(posts_dict.items()):

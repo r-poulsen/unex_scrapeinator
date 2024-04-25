@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import date, time, datetime, timedelta
 from urllib.parse import urljoin
+from pytz import timezone
 from requests_html import HTMLSession, HTMLResponse, Element
 from datetime import timedelta
 from dateutil.relativedelta import relativedelta
@@ -60,8 +61,16 @@ class UnexSendItem:
             self.actual_posting_date = self.requested_posting_date
 
         previous_workday = self.get_previous_workday(self.actual_posting_date)
-        start_time = datetime.combine(previous_workday, time(10, 0))
-        end_time = datetime.combine(self.actual_posting_date, time(10, 0))
+
+        # Define your timezone
+        tz = timezone('Europe/Copenhagen')
+
+        start_time = datetime.combine(
+            previous_workday, time(10, 0), tzinfo=tz
+        )
+        end_time = datetime.combine(
+            self.actual_posting_date, time(10, 0), tzinfo=tz
+        )
 
         # TODO This just adds one week and does not take holidays into account
         self.posting_intervals = (

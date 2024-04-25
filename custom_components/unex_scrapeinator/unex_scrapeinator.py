@@ -203,7 +203,7 @@ class UnexScrapeinator:
                 "sending_method": send_item.sending_method,
                 "requested_posting_date": send_item.requested_posting_date.strftime("%Y-%m-%d"),
                 "actual_posting_date": send_item.actual_posting_date.strftime("%Y-%m-%d"),
-                "actual_posting_interval": send_item.posting_intervals
+                "actual_posting_intervals": send_item.posting_intervals
             })
 
         for k, v in sorted(posts_dict.items()):

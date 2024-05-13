@@ -1,17 +1,15 @@
 ''' This module is used to scrape the UNEX website. '''
 
 import logging
-from dataclasses import dataclass, field
-from datetime import date, datetime, time, timedelta
+from dataclasses import dataclass
+from datetime import datetime
 from urllib.parse import urljoin
 
-from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from requests_html import Element, HTMLResponse, HTMLSession
 
-from .const import DOMAIN
 
-_LOGGER: logging.Logger = logging.getLogger(f"custom_components.{DOMAIN}")
+_LOGGER: logging.Logger = logging.getLogger(__name__)
 
 
 class ScrapeinatorException(Exception):
@@ -29,80 +27,13 @@ class UnexSendItem:
     receiver_name: str
     sending_method: str
     _posting_date: str
-    # actual_posting_date: date = field(init=False)
-    # posting_intervals: tuple[
-    #     tuple[datetime, datetime],
-    #     tuple[datetime, datetime]
-    # ] = field(init=False)
-
-    # def __init__(self, requested_posting_date_str: str):
-    #     self.requested_posting_date = datetime.strptime(
-    #         requested_posting_date_str.split(' ')[0], '%Y%m%d'
-    #     ).date()
 
     def __post_init__(self) -> None:
-        #     if isinstance(self.requested_posting_date, str):
         self.posting_date = datetime.strptime(
             self._posting_date.split(' ')[0], '%Y%m%d'
         ).date()
 
-    # now = datetime.now()
-    # requested_posting_datetime = datetime.combine(
-    #     self.requested_posting_date, time(10, 0))
-
-    # TODO This doesn't check for holidays
-
-    # # Get the next same weekday
-    # next_same_weekday = datetime.now(
-    # ) + relativedelta(weekday=self.requested_posting_date.weekday())
-
-    # if now > requested_posting_datetime:
-    #     # If current time has passed 10:00 on the requested_posting_date,
-    #     # set actual_posting_date to the next same weekday
-    #     self.actual_posting_date = next_same_weekday
-    # else:
-    #     # If current time hasn't passed 10:00 on the requested_posting_date,
-    #     # set actual_posting_date to the requested_posting_date
-    #     self.actual_posting_date = self.requested_posting_date
-
-    # previous_workday = self.get_previous_workday(self.actual_posting_date)
-
-    # Define your timezone
     tz = timezone('Europe/Copenhagen')
-
-    # start_time = datetime.combine(
-    #     previous_workday, time(10, 0), tzinfo=tz
-    # )
-    # end_time = datetime.combine(
-    #     self.actual_posting_date, time(10, 0), tzinfo=tz
-    # )
-
-    # # TODO This just adds one week and does not take holidays into account
-    # self.posting_intervals = (
-    #     (start_time, end_time),
-    #     (
-    #         start_time +
-    #         timedelta(weeks=1),
-    #         end_time + timedelta(weeks=1)
-    #     )
-    # )
-
-    # @staticmethod
-    # def get_previous_workday(input_date):
-    #     """ This method returns the previous workday of the input date.
-
-    #     Args:
-    #         input_date (date): The input date.
-
-    #     Returns:
-    #         date: The previous workday of the input date.
-    #     """
-
-    #     # TODO Does not take holidays into account
-    #     previous_workday = input_date - timedelta(days=1)
-    #     while previous_workday.weekday() > 4:  # 0-4 corresponds to Monday - Friday
-    #         previous_workday -= timedelta(days=1)
-    #     return previous_workday
 
     def __repr__(self) -> str:
         return (
@@ -174,7 +105,6 @@ class UnexScrapeinator:
         assert isinstance(response, HTMLResponse)
         response.raise_for_status()
 
-        # posts_dict = {}
         self.posts = []
 
         # If we're redirected to the login page, the session cookie probably expired
@@ -204,23 +134,3 @@ class UnexScrapeinator:
             assert isinstance(td_elements, list)
             self.posts.append(UnexSendItem(
                 *[c.text for c in td_elements][:4]))
-
-            # if send_item.actual_posting_date.strftime(
-            #         "%Y-%m-%d") not in posts_dict:
-            #     posts_dict[send_item.actual_posting_date.strftime(
-            #         "%Y-%m-%d")] = []
-
-            # assert isinstance(send_item.requested_posting_date, date)
-            # posts_dict[send_item.actual_posting_date.strftime("%Y-%m-%d")].append({
-            #     "id": send_item.item_id,
-            #     "receiver_name": send_item.receiver_name,
-            #     "sending_method": send_item.sending_method,
-            #     "requested_posting_date": send_item.requested_posting_date.strftime("%Y-%m-%d"),
-            #     "actual_posting_date": send_item.actual_posting_date.strftime("%Y-%m-%d"),
-            #     "actual_posting_intervals": send_item.posting_intervals
-            # })
-
-        # for k, v in sorted(posts_dict.items()):
-        #     self.posts.append((k, v))
-
-        # self.next_post = self.posts[0]

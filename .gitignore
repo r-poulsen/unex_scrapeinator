@@ -1,4 +1,4 @@
-secret.yaml
+settings.yaml
 credentials.json
 token.json
 **/__pycache__/
